@@ -19,9 +19,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - board: seeeduino_xiao_ble
+          # 修正板名为 xiao_ble
+          - board: xiao_ble
             shield: xiao_ble_keyboard
-          - board: seeeduino_xiao_ble
+          - board: xiao_ble
             shield: xiao_ble_receiver
 
     steps:
