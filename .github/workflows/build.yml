@@ -1,76 +1,42 @@
-name: Build ZMK Firmware
+name: ZMK Firmware Build
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
   workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  ZMK_VERSION: main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build firmware for ${{ matrix.board }}
+    container: zmkfirmware/zmk-build-arm:stable
+    name: Build Firmware
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - board: xiao_ble
+        board:
+          - xiao_ble
 
     steps:
-      - name: Checkout user configuration
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           path: config
-          fetch-depth: 0
 
-      - name: Cache West Modules
+      - name: Cache
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cache/zephyr
-            ~/.cache/west
-            zmk/.west
-            zmk/modules
-            zmk/tools
-          key: ${{ runner.os }}-zmk-${{ hashFiles('config/west.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-zmk-
+            /github/home/.cache
+            /github/home/.local
+            /github/home/.npm
+            /github/home/.cargo
+          key: zmk-${{ matrix.board }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Build
+        run: west build -s app -b ${{ matrix.board }} -- -DZMK_CONFIG=/github/workspace/config
 
-      - name: Install West
-        run: |
-          pip3 install --upgrade pip
-          pip3 install west
-
-      - name: Initialize ZMK Repository
-        run: |
-          mkdir -p zmk
-          cd zmk
-          west init -l ../config
-          west update
-          west zephyr-export
-
-      - name: Build Firmware
-        run: |
-          cd zmk/app
-          west build -b ${{ matrix.board }} --pristine -- -DZMK_CONFIG=${{ github.workspace }}/config
-
-      - name: Rename UF2 File
-        run: |
-          mkdir -p firmware
-          cp zmk/app/build/zephyr/zmk.uf2 firmware/${{ matrix.board }}.uf2
-
-      - name: Upload Firmware
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.board }}-firmware
-          path: firmware/
+          name: zmk-${{ matrix.board }}
+          path: build/zephyr/zmk.uf2
