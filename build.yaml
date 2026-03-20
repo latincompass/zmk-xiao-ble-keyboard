@@ -1,2 +1,2 @@
 include:
-  - board: xiao_ble
+  - board: zmk,xiao_ble
