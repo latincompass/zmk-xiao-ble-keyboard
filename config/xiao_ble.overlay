@@ -1,11 +1,19 @@
 / {
-    gpio-keys {
-        compatible = "gpio-keys";
-        key_0: key@0 { gpios = <&gpio0 2 GPIO_ACTIVE_LOW>; zmk,keycode = <ZMK_KEY_A>; };
-        key_1: key@1 { gpios = <&gpio0 3 GPIO_ACTIVE_LOW>; zmk,keycode = <ZMK_KEY_B>; };
-        key_2: key@2 { gpios = <&gpio0 4 GPIO_ACTIVE_LOW>; zmk,keycode = <ZMK_KEY_C>; };
-    };
+	leds {
+		compatible = "gpio-leds";
+		led0: led_0 {
+			gpios = <&gpio0 13 0>;
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		button0: button_0 {
+			gpios = <&gpio0 15 1>;
+		};
+	};
 };
 
-&bt { status = "okay"; };
-&usb { status = "disabled"; };
+&bt {
+	status = "okay";
+};
