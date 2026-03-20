@@ -2,41 +2,9 @@ name: ZMK Firmware Build
 
 on:
   push:
-  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container: zmkfirmware/zmk-build-arm:stable
-    name: Build Firmware
-    strategy:
-      fail-fast: false
-      matrix:
-        board:
-          - xiao_ble
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: config
-
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            /github/home/.cache
-            /github/home/.local
-            /github/home/.npm
-            /github/home/.cargo
-          key: zmk-${{ matrix.board }}
-
-      - name: Build
-        run: west build -s app -b ${{ matrix.board }} -- -DZMK_CONFIG=/github/workspace/config
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: zmk-${{ matrix.board }}
-          path: build/zephyr/zmk.uf2
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
