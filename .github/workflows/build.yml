@@ -14,16 +14,12 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build firmware for ${{ matrix.board }}-${{ matrix.shield }}
+    name: Build firmware for ${{ matrix.board }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # 修正板名为 xiao_ble
           - board: xiao_ble
-            shield: xiao_ble_keyboard
-          - board: xiao_ble
-            shield: xiao_ble_receiver
 
     steps:
       - name: Checkout user configuration
@@ -66,15 +62,15 @@ jobs:
       - name: Build Firmware
         run: |
           cd zmk/app
-          west build -b ${{ matrix.board }} --pristine -- -DZMK_CONFIG=${{ github.workspace }}/config -DSHIELD=${{ matrix.shield }}
+          west build -b ${{ matrix.board }} --pristine -- -DZMK_CONFIG=${{ github.workspace }}/config
 
       - name: Rename UF2 File
         run: |
           mkdir -p firmware
-          cp zmk/app/build/${{ matrix.board }}/zephyr/zmk.uf2 firmware/${{ matrix.board }}-${{ matrix.shield }}.uf2
+          cp zmk/app/build/zephyr/zmk.uf2 firmware/${{ matrix.board }}.uf2
 
       - name: Upload Firmware
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.board }}-${{ matrix.shield }}
+          name: ${{ matrix.board }}-firmware
           path: firmware/
