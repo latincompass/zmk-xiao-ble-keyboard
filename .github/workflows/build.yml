@@ -1,124 +1,79 @@
-name: ZMK Build for XIAO BLE Keyboard & Receiver
+name: Build ZMK Firmware
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # 手动触发编译
+  workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # 解决 Node.js 20 警告
-  ZMK_BASE: ${{ github.workspace }}/zmk
-  CONFIG_PATH: ${{ github.workspace }}/config
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ZMK_VERSION: main
 
 jobs:
-  build-keyboard:
-    name: Build Keyboard Firmware (XIAO BLE)
+  build:
     runs-on: ubuntu-latest
+    name: Build firmware for ${{ matrix.board }}-${{ matrix.shield }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: seeeduino_xiao_ble
+            shield: xiao_ble_keyboard
+          - board: seeeduino_xiao_ble
+            shield: xiao_ble_receiver
+
     steps:
-      - name: Checkout User Config
+      - name: Checkout user configuration
         uses: actions/checkout@v4
         with:
           path: config
           fetch-depth: 0
 
-      - name: Install System Dependencies
-        run: |
-          sudo apt update && sudo apt install -y --no-install-recommends \
-            git cmake ninja-build gperf ccache dfu-util device-tree-compiler \
-            wget python3-dev python3-pip python3-setuptools python3-tk python3-wheel \
-            xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 \
-            libusb-1.0-0-dev libudev-dev
-
-      - name: Install West
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install west
-
-      - name: Initialize ZMK Repository
-        run: |
-          mkdir -p $ZMK_BASE
-          cd $ZMK_BASE
-          west init -m https://github.com/zmkfirmware/zmk --mr main
-          west update
-          west zephyr-export
-
-      - name: Cache ZMK Dependencies
+      - name: Cache West Modules
         uses: actions/cache@v4
         with:
           path: |
-            $ZMK_BASE/.west
-            $ZMK_BASE/modules
-            $ZMK_BASE/tools
+            ~/.cache/zephyr
+            ~/.cache/west
+            zmk/.west
+            zmk/modules
+            zmk/tools
           key: ${{ runner.os }}-zmk-${{ hashFiles('config/west.yml') }}
           restore-keys: |
             ${{ runner.os }}-zmk-
 
-      - name: Build Keyboard Firmware
-        run: |
-          cd $ZMK_BASE/app
-          west build -b seeeduino_xiao_ble --pristine -- -DZMK_CONFIG=$CONFIG_PATH -DZMK_KEYBOARD=xiao_ble_keyboard
-
-      - name: Upload Keyboard Firmware
-        uses: actions/upload-artifact@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          name: xiao-ble-keyboard-firmware
-          path: |
-            $ZMK_BASE/app/build/seeeduino_xiao_ble/zephyr/zmk.uf2
-            $ZMK_BASE/app/build/seeeduino_xiao_ble/zephyr/zmk.bin
-
-  build-receiver:
-    name: Build Receiver Firmware (XIAO BLE)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout User Config
-        uses: actions/checkout@v4
-        with:
-          path: config
-          fetch-depth: 0
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt update && sudo apt install -y --no-install-recommends \
-            git cmake ninja-build gperf ccache dfu-util device-tree-compiler \
-            wget python3-dev python3-pip python3-setuptools python3-tk python3-wheel \
-            xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 \
-            libusb-1.0-0-dev libudev-dev
+          python-version: "3.11"
 
       - name: Install West
         run: |
-          python3 -m pip install --upgrade pip
+          pip3 install --upgrade pip
           pip3 install west
 
       - name: Initialize ZMK Repository
         run: |
-          mkdir -p $ZMK_BASE
-          cd $ZMK_BASE
-          west init -m https://github.com/zmkfirmware/zmk --mr main
+          mkdir -p zmk
+          cd zmk
+          west init -l ../config
           west update
           west zephyr-export
 
-      - name: Cache ZMK Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            $ZMK_BASE/.west
-            $ZMK_BASE/modules
-            $ZMK_BASE/tools
-          key: ${{ runner.os }}-zmk-${{ hashFiles('config/west.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-zmk-
-
-      - name: Build Receiver Firmware
+      - name: Build Firmware
         run: |
-          cd $ZMK_BASE/app
-          west build -b seeeduino_xiao_ble --pristine -- -DZMK_CONFIG=$CONFIG_PATH -DZMK_KEYBOARD=xiao_ble_receiver
+          cd zmk/app
+          west build -b ${{ matrix.board }} --pristine -- -DZMK_CONFIG=${{ github.workspace }}/config -DSHIELD=${{ matrix.shield }}
 
-      - name: Upload Receiver Firmware
+      - name: Rename UF2 File
+        run: |
+          mkdir -p firmware
+          cp zmk/app/build/${{ matrix.board }}/zephyr/zmk.uf2 firmware/${{ matrix.board }}-${{ matrix.shield }}.uf2
+
+      - name: Upload Firmware
         uses: actions/upload-artifact@v4
         with:
-          name: xiao-ble-receiver-firmware
-          path: |
-            $ZMK_BASE/app/build/seeeduino_xiao_ble/zephyr/zmk.uf2
-            $ZMK_BASE/app/build/seeeduino_xiao_ble/zephyr/zmk.bin
+          name: ${{ matrix.board }}-${{ matrix.shield }}
+          path: firmware/
