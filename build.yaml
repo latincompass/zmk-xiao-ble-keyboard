@@ -1,5 +1,2 @@
 include:
   - board: xiao_ble
-    shield: xiao_ble_keyboard
-  - board: xiao_ble
-    shield: xiao_ble_receiver
