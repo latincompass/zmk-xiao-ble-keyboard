@@ -2,10 +2,10 @@
 #include <dt-bindings/zmk/keys.h>
 
 / {
-    keymap {
-        compatible = "zmk,keymap";
-        default_layer {
-            bindings = <&kp A &kp B &kp C>;
-        };
-    };
+	keymap {
+		compatible = "zmk,keymap";
+		default_layer {
+			bindings = <&kp A &kp B &kp C>;
+		};
+	};
 };
